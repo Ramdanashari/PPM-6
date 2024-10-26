@@ -1,118 +1,198 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import axios from "axios";
+import { useEffect, useState } from "react";
+import { Image, ScrollView, Text, TouchableOpacity, TextInput, View, StyleSheet } from "react-native";
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
-
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
-
-type SectionProps = PropsWithChildren<{
+interface Data {
+  id: string;
   title: string;
-}>;
-
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
+  price: number;
+  description: string;
+  image: string;
 }
 
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+const App = () => {
+  const [datas, setDatas] = useState<Data[]>([]);
+  const [editingData, setEditingData] = useState<Data | null>(null);
+  const [title, setTitle] = useState("");
+  const [price, setPrice] = useState(0);
+  const [description, setDescription] = useState("");
+  const [image, setImage] = useState("");
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+  const baseURL = "https://671a5c8aacf9aa94f6aa583f.mockapi.io/products";
+
+  const fetchData = async () => {
+    try {
+      const response = await axios.get(baseURL);
+      setDatas(response.data);
+    } catch (error) {
+      console.log("Error fetching data:", error);
+    }
   };
 
+  const postData = async () => {
+    try {
+      const newData = {
+        image:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQEcrDRdlrLZZnoTUeONt1HjYZaxNu34r25qs8GAgnPJQZyLGSYV_3JgafPqjEAFr8COls&usqp=CAU",
+        title: "Red Velvet",
+        price: 120000,
+        description: "bebeledagan",
+      };
+      const response = await axios.post(baseURL, newData);
+      fetchData(); 
+    } catch (error) {
+      console.log("Error posting data:", error);
+    }
+  };
+
+  const deleteData = async (id: string) => {
+    try {
+      await axios.delete(`${baseURL}/${id}`);
+      fetchData(); 
+    } catch (error) {
+      console.log("Error deleting data:", error);
+    }
+  };
+
+  const editData = async (id: string) => {
+    try {
+      const updatedData = {
+        image,
+        title,
+        price,
+        description,
+      };
+      await axios.put(`${baseURL}/${id}`, updatedData);
+      fetchData(); 
+      setEditingData(null); 
+    } catch (error) {
+      console.log("Error updating data:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
+    <View>
+      <ScrollView style={{backgroundColor:"#cadbed"}}>
+        {editingData ? (
+          <View>
+            <TextInput placeholder="Title" value={title} onChangeText={setTitle} />
+            <TextInput placeholder="Price" value={String(price)} onChangeText={(text) => setPrice(Number(text))} />
+            <TextInput placeholder="Description" value={description} onChangeText={setDescription} />
+            <TextInput placeholder="Image URL" value={image} onChangeText={setImage} />
+            <TouchableOpacity onPress={() => editData(editingData.id)} style={{ backgroundColor: "blue", padding: 10, marginTop: 10 }}>
+              <Text style={{ color: "white" }}>Simpan Perubahan</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
+        <View style={styles.container}>
+          {datas.map((data) => (
+            <View key={data.id} style={styles.productContainer}>
+              <Image source={{ uri: data.image }} style={styles.image} />
+              <Text style={styles.title}>{data.title}</Text>
+              <Text style={styles.descripsi}>{data.description}</Text>
+              <Text style={styles.price}>Rp {data.price}</Text>
+              <View style={{flexDirection:"row", justifyContent:"space-between",marginTop:20}}>
+              <TouchableOpacity
+                onPress={() => {
+                  setEditingData(data);
+                  setTitle(data.title);
+                  setPrice(data.price);
+                  setDescription(data.description);
+                  setImage(data.image);
+                }}
+                style={styles.buttonEdit}
+                >
+                <Ionicons name="create-outline" size={30} color="#7e9bbf" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => deleteData(data.id)}
+                style={styles.buttonEdit}
+                >
+                <Ionicons name="trash-outline" size={30} color="#9c4441" />
+              </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+          
         </View>
       </ScrollView>
-    </SafeAreaView>
+      <TouchableOpacity
+          onPress={postData}
+          style={{ backgroundColor: "#cadbed",
+            padding: 10,
+            borderRadius: 30,
+            position: "absolute",
+            bottom: 20,
+            right: 25, 
+            opacity:0.8
+          }}
+        >
+        <Ionicons name="add-outline" size={40} color="#3b5670" />
+      </TouchableOpacity>
+  </View>
   );
-}
-
-const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-});
+};
 
 export default App;
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-around",
+    padding: 10,
+  },
+  productContainer: {
+    width: "45%",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 10,
+    padding: 10,
+    marginVertical: 10,
+    backgroundColor: "#3b5670",
+  },
+  image: {
+    width: "100%",
+    height: 150,
+    borderRadius: 5,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginVertical: 5,
+    color:"#cadbed"
+  },
+  price: {
+    fontSize: 20,
+    color: "#cadbed",
+    marginBottom: 5,
+  },
+  buttonEdit: {
+    backgroundColor: "white",
+    padding: 2,
+    borderRadius: 5,
+    marginBottom: 5,
+    alignItems:"center"
+  },
+  buttonDelete: {
+    backgroundColor: "red",
+    padding: 5,
+    borderRadius: 5,
+    alignItems:"center"
+
+  },
+  buttonText: {
+    color: "white",
+    textAlign: "center",
+  },
+  descripsi: {
+    fontSize: 15,
+    color: "#cadbed",
+    marginBottom: 5,
+  },
+});
